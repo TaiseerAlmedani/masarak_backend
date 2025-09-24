@@ -1,0 +1,353 @@
+openapi: 3.0.0
+info:
+  title: Masarak API Documentation
+  version: 1.0.0
+  description: API documentation for the Masarak backend, providing public transportation guidance in Syria.
+servers:
+  - url: http://localhost:3000/api
+    description: Local Development Server
+  - url: https://your-deployed-backend-url.com/api
+    description: Production Server
+tags:
+  - name: Authentication
+    description: User registration and login operations
+  - name: Routes
+    description: Public transportation route management and suggestions
+
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  example: John Doe
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  format: password
+                  example: strongpassword123
+                phone:
+                  type: string
+                  example: +963999123456
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT authentication token
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        '400':
+          description: User already exists or invalid input
+        '500':
+          description: Server error
+
+  /auth/login:
+    post:
+      summary: Log in a user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  format: password
+                  example: strongpassword123
+      responses:
+        '200':
+          description: User logged in successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT authentication token
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      email:
+                        type: string
+                      role:
+                        type: string
+        '400':
+          description: Invalid credentials
+        '500':
+          description: Server error
+
+  /routes/add:
+    post:
+      summary: Add a new public transportation route (Admin only)
+      tags:
+        - Routes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - price
+                - stations
+              properties:
+                name:
+                  type: string
+                  example: خط المزة جبل
+                description:
+                  type: string
+                  example: خط يربط المزة بوسط المدينة عبر الجبل
+                color:
+                  type: string
+                  example: '#FF0000'
+                price:
+                  type: number
+                  format: float
+                  example: 2500
+                active:
+                  type: boolean
+                  example: true
+                stations:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: ساحة الأمويين
+                      latitude:
+                        type: number
+                        format: float
+                        example: 33.5123
+                      longitude:
+                        type: number
+                        format: float
+                        example: 36.2919
+                      area:
+                        type: string
+                        example: دمشق
+      responses:
+        '201':
+          description: Route added successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Access denied (requires admin role)
+        '500':
+          description: Server error
+
+  /routes/all:
+    get:
+      summary: Get all public transportation routes
+      tags:
+        - Routes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of all routes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    description:
+                      type: string
+                    color:
+                      type: string
+                    price:
+                      type: number
+                    active:
+                      type: boolean
+                    RouteStations:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          order_index:
+                            type: integer
+                          Station:
+                            type: object
+                            properties:
+                              name:
+                                type: string
+                              latitude:
+                                type: number
+                              longitude:
+                                type: number
+                              area:
+                                type: string
+        '401':
+          description: Unauthorized
+        '500':
+          description: Server error
+
+  /routes/suggest:
+    post:
+      summary: Suggest a route between two stations
+      tags:
+        - Routes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - from_station_name
+                - to_station_name
+              properties:
+                from_station_name:
+                  type: string
+                  example: ساحة الأمويين
+                to_station_name:
+                  type: string
+                  example: ساحة العباسيين
+      responses:
+        '200':
+          description: Suggested routes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  suggestion:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          enum: ["direct", "transfer"]
+                        route:
+                          type: string
+                        stations:
+                          type: array
+                          items:
+                            type: string
+                        price:
+                          type: number
+                        route1:
+                          type: string
+                        transfer_station:
+                          type: string
+                        route2:
+                          type: string
+                        route1_stations:
+                          type: array
+                          items:
+                            type: string
+                        route2_stations:
+                          type: array
+                          items:
+                            type: string
+        '401':
+          description: Unauthorized
+        '404':
+          description: One or both stations not found
+        '500':
+          description: Server error
+
+  /routes/rate:
+    post:
+      summary: Rate a suggested trip
+      tags:
+        - Routes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - trip_id
+                - rating
+              properties:
+                trip_id:
+                  type: string
+                  format: uuid
+                  example: 123e4567-e89b-12d3-a456-426614174000
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                comment:
+                  type: string
+                  example: خدمة ممتازة وسريعة!
+      responses:
+        '201':
+          description: Rating submitted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Trip not found or not authorized
+        '500':
+          description: Server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
